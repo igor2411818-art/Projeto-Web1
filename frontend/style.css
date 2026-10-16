@@ -1,0 +1,122 @@
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f6f8;
+    color: #333;
+    padding: 30px;
+}
+
+/* Card do aluno */
+.card-aluno {
+    background-color: #fff;
+    max-width: 600px;
+    margin: 0 auto 20px;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card-aluno h3 {
+    margin-bottom: 10px;
+    color: #222;
+}
+
+.meta {
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 15px;
+}
+
+
+button {
+    border: none;
+    padding: 10px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-right: 8px;
+    transition: 0.2s;
+}
+
+button[data-acao="editor"] {
+    background-color: #292b2c;
+    color: white;
+}
+
+button[data-acao="editor"]:hover {
+    background-color: #292b2c;
+}
+
+button[data-acao="excluir"] {
+    background-color: #292b2c;
+    color: white;
+}
+
+button[data-acao="excluir"]:hover {
+    background-color: #292b2c;
+}
+
+
+#form-aluno {
+    background-color: #fff;
+    max-width: 600px;
+    margin: 30px auto;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+#form-aluno label {
+    display: block;
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+#form-aluno input {
+    display: block;
+    width: 100%;
+    margin-top: 6px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 15px;
+}
+
+#form-aluno input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
+}
+
+#form-aluno button[type="submit"] {
+    background-color: #292b2c;
+    color: white;
+    width: 100%;
+    margin-top: 5px;
+}
+
+#form-aluno button[type="submit"]:hover {
+    background-color: #292b2c;
+}
+
+
+@media (max-width: 600px) {
+    body {
+        padding: 15px;
+    }
+
+    .card-aluno,
+    #form-aluno {
+        padding: 15px;
+    }
+
+    button {
+        margin-bottom: 8px;
+    }
+}

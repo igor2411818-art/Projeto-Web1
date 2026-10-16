@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+     <link rel="stylesheet" type="text/css" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabela</title>
+</head>
+<body>
+   <article class ="card-aluno">
+    <h3>$`{escaparHtml(aluno.nome)}</h3>
+    <p class ="meta">
+        RA ${escaparHtml(aluno.ra)}
+        . ${escaparHtml(aluno.curso || 'Sem curso')}
+        . id ${aluno.id}
+    </p>
+    <button data-acao="editor"
+            data-ra="${escaparAtributo(aluno.ra)}"
+            data-curso="${escaparAtributo(aluno.curso || '')}">
+            Editar curso
+        </button>
+        <button data-acao="excluir"
+                data-ra="${escaparAtributo(aluno.ra)}">
+                Excluir
+            </button>
+   </article>
+ <form id="form-aluno">
+    <label>Nome *
+        <input id="nome" type="text" required />
+    </label>
+    <label>RA *
+        <input id="ra" type="text" required />
+    </label>
+    <label>Curso
+        <input id="curso" type="text" />
+    </label>
+    <button type="submit">Salvar (POST)</button>
+ </form>
+
+ <script src="app.js"></script>
+</body>
+</html>
