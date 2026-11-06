@@ -1,292 +1,440 @@
 
 const API_URL = '';
+const ALUNOS_POR_PAGINA = 10;
 
-const formAluno = document.getElementById('fora-aluno');
-const formCurso = document.getElementById('fora-curso');
-const listaEl = document.getElementById('lista');
-const statusEl = document.getElementById('status');
-const logEl = document.getElementById('log');
-const raBuscaEl = document.getElementById('ra-busca');
-const raEditandoEl = document.getElementById('ra-editando');
-const cursoNovoEl = document.getElementById('curso-novo');
+const tabela = document.getElementById('tabela-alunos');
+const tabelaCursos = document.getElementById('tabela-cursos');
 
+const msg = document.getElementById('msg');
+const modal = document.getElementById('modal');
+const modalTitulo = document.getElementById('modal-titulo');
 
-function mostrarStatus(texto, tipo = '') {
-    statusEl.textContent = texto;
-    statusEl.className = `status ${tipo}`.trim();
+const form = document.getElementById('form-aluno');
+const formCurso = document.getElementById('form-curso');
+
+const inputNome = document.getElementById('nome');
+const inputRa = document.getElementById('ra');
+const selectCurso = document.getElementById('curso');
+const filtroCurso = document.getElementById('filtro-curso');
+const inputNovoCurso = document.getElementById('novo-curso');
+
+const sentinelaAlunos = document.getElementById('sentinela-alunos');
+
+let modo = 'criar';
+let raEditando = '';
+let alunosInicio = 0;
+let alunosTotal = 0;
+let alunosTemMais = true;
+let alunosCarregando = false;
+let alunosPedido = 0;
+
+function mostrarMsg(texto, tipo = '') {
+    msg.hidden = false;
+    msg.textContent = texto;
+    msg.className = 'msg' + (tipo ? ` ${tipo}` : '');
 }
 
-
-function mostrarLog(titulo, detalhe) {
-    const corpo =
-        typeof detalhe === 'string'
-            ? detalhe
-            : JSON.stringify(detalhe, null, 2);
-
-    logEl.textContent = `${titulo}\n\n${corpo}`;
-}
-
-
-async function requisicao(url, opcoes = {}, titulo = '') {
-    const resposta = await fetch(url, opcoes);
-
+async function requisicao(url, opcoes = {}) {
+    const resposta = await fetch(`${API_URL}${url}`, opcoes);
     const dados = await resposta.json().catch(() => ({}));
 
     if (!resposta.ok) {
         throw new Error(
-            dados.erro || dados.mensagem || 'Falha na requisição'
+            dados.erro || dados.mensagem || 'Erro na requisição.'
         );
-    }
-
-    if (titulo) {
-        mostrarLog(`${titulo} -> ${resposta.status}`, dados);
     }
 
     return dados;
 }
 
+async function listarCursos() {
+    try {
+        const cursos = await requisicao('/cursos');
 
-async function listarAlunos() {
-    mostrarStatus('Carregando lista...');
-
-    const dados = await requisicao(
-        `${API_URL}/alunos`,
-        {},
-        'GET /alunos'
-    );
-
-    renderizarListar(dados);
-
-    mostrarStatus(
-        `${dados.length} aluno(s) encontrado(s).`,
-        'ok'
-    );
+        montarTabelaCursos(cursos);
+        preencherSelects(cursos);
+    } catch (erro) {
+        mostrarMsg(erro.message, 'erro');
+    }
 }
 
+function montarTabelaCursos(cursos) {
+    tabelaCursos.innerHTML = '';
 
-async function criarAluno(nome, ra, curso) {
-    return await requisicao(
-        `${API_URL}/alunos`,
-        {
+    if (!cursos.length) {
+        tabelaCursos.innerHTML = `
+            <tr>
+                <td colspan="3" class="vazio">
+                    Nenhum curso cadastrado ainda.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    for (const curso of cursos) {
+        const tr = document.createElement('tr');
+
+        const tdNome = document.createElement('td');
+        tdNome.textContent = curso.nome;
+
+        const tdTotal = document.createElement('td');
+        tdTotal.textContent = curso.total_alunos ?? 0;
+
+        const tdAcoes = document.createElement('td');
+
+        const btnVer = document.createElement('button');
+        btnVer.textContent = 'Ver alunos';
+        btnVer.className = 'btn btn-secundario btn-pequeno';
+
+        btnVer.onclick = () => {
+            filtroCurso.value = curso.id;
+            listarAlunos();
+        };
+
+        const btnExcluir = document.createElement('button');
+        btnExcluir.textContent = 'Excluir';
+        btnExcluir.className = 'btn btn-perigo btn-pequeno';
+
+        btnExcluir.onclick = () => excluirCurso(curso.id, curso.nome);
+
+        tdAcoes.append(btnVer, btnExcluir);
+        tr.append(tdNome, tdTotal, tdAcoes);
+        tabelaCursos.appendChild(tr);
+    }
+}
+
+function preencherSelects(cursos) {
+    const filtroAtual = filtroCurso.value;
+    const cursoAtual = selectCurso.value;
+
+    filtroCurso.innerHTML = '<option value="">Todos os cursos</option>';
+    selectCurso.innerHTML = '<option value="">Selecione um curso</option>';
+
+    for (const curso of cursos) {
+        filtroCurso.appendChild(new Option(curso.nome, curso.id));
+        selectCurso.appendChild(new Option(curso.nome, curso.id));
+    }
+
+    filtroCurso.value = filtroAtual;
+    selectCurso.value = cursoAtual;
+
+    if (filtroCurso.selectedIndex === -1) {
+        filtroCurso.value = '';
+    }
+
+    if (selectCurso.selectedIndex === -1) {
+        selectCurso.value = '';
+    }
+}
+
+async function adicionarCurso(evento) {
+    evento.preventDefault();
+
+    const nome = inputNovoCurso.value.trim();
+
+    if (!nome) {
+        mostrarMsg('Informe o nome do curso.', 'erro');
+        return;
+    }
+
+    try {
+        const dados = await requisicao('/cursos', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ nome, ra, curso })
-        },
-        'POST /alunos'
-    );
+            body: JSON.stringify({ nome })
+        });
+
+        inputNovoCurso.value = '';
+
+        mostrarMsg(`Curso "${dados.nome}" cadastrado com sucesso!`, 'ok');
+
+        await atualizarTudo();
+    } catch (erro) {
+        mostrarMsg(erro.message, 'erro');
+    }
 }
 
+async function excluirCurso(id, nome) {
+    if (!confirm(`Deseja excluir o curso "${nome}"?`)) {
+        return;
+    }
 
-async function buscarPorRa(ra) {
-    return await requisicao(
-        `${API_URL}/alunos/${encodeURIComponent(ra)}`,
-        {},
-        `GET /alunos/${ra}`
-    );
-}
-
-async function atualizarCurso(ra, curso) {
-    return await requisicao(
-        `${API_URL}/alunos/${encodeURIComponent(ra)}`,
-        {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ curso })
-        },
-        `PUT /alunos/${ra}`
-    );
-}
-
-
-async function excluirAluno(ra) {
-    return await requisicao(
-        `${API_URL}/alunos/${encodeURIComponent(ra)}`,
-        {
+    try {
+        await requisicao(`/cursos/${encodeURIComponent(id)}`, {
             method: 'DELETE'
-        },
-        `DELETE /alunos/${ra}`
-    );
-}
+        });
 
+        mostrarMsg('Curso excluído com sucesso!', 'ok');
 
-function escaparHtml(texto) {
-    return String(texto ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
-}
-
-
-function renderizarListar(alunos) {
-    if (!Array.isArray(alunos)) {
-        throw new Error('A API não retornou uma lista de alunos válida.');
+        await atualizarTudo();
+    } catch (erro) {
+        mostrarMsg(erro.message, 'erro');
     }
+}
 
-    if (alunos.length === 0) {
-        listaEl.innerHTML =
-            '<p class="vazio">Nenhum aluno ainda. Cadastre o primeiro acima.</p>';
+function abrirModalCriar() {
+    if (selectCurso.options.length <= 1) {
+        mostrarMsg('Cadastre um curso antes de incluir alunos.', 'erro');
         return;
     }
 
-    listaEl.innerHTML = alunos.map((aluno) => `
-        <div class="aluno-item">
-            <div class="aluno-info">
-                <strong>${escaparHtml(aluno.nome)}</strong>
-                <p>RA: ${escaparHtml(aluno.ra)}</p>
-                <p>Curso: ${escaparHtml(aluno.curso || 'Não informado')}</p>
-            </div>
+    modo = 'criar';
+    raEditando = '';
 
-            <div class="aluno-acoes">
-                <button
-                    type="button"
-                    data-acao="editar"
-                    data-ra="${escaparHtml(aluno.ra)}"
-                    data-curso="${escaparHtml(aluno.curso || '')}">
-                    Editar
-                </button>
+    modalTitulo.textContent = 'Novo aluno';
 
-                <button
-                    type="button"
-                    data-acao="excluir"
-                    data-ra="${escaparHtml(aluno.ra)}">
-                    Excluir
-                </button>
-            </div>
-        </div>
-    `).join('');
+    form.reset();
+    inputRa.disabled = false;
+
+    modal.hidden = false;
+    inputNome.focus();
 }
 
+function abrirModalEditar(aluno) {
+    modo = 'editar';
+    raEditando = aluno.ra;
 
-formAluno.addEventListener('submit', async (evento) => {
+    modalTitulo.textContent = 'Editar aluno';
+
+    inputNome.value = aluno.nome || '';
+    inputRa.value = aluno.ra || '';
+    selectCurso.value = aluno.curso_id || '';
+
+    inputRa.disabled = true;
+
+    modal.hidden = false;
+    inputNome.focus();
+}
+
+function fecharModal() {
+    modal.hidden = true;
+
+    form.reset();
+    inputRa.disabled = false;
+
+    modo = 'criar';
+    raEditando = '';
+}
+
+async function salvarAluno(evento) {
     evento.preventDefault();
 
-    const nome = document.getElementById('nome').value.trim();
-    const ra = document.getElementById('ra').value.trim();
-    const curso = document.getElementById('curso').value.trim();
+    const nome = inputNome.value.trim();
+    const ra = inputRa.value.trim();
+    const cursoId = Number(selectCurso.value);
 
-    if (!nome || !ra || !curso) {
-        mostrarStatus('Preencha todos os campos do aluno.', 'erro');
+    if (!nome || !ra || !cursoId) {
+        mostrarMsg('Preencha todos os campos do aluno.', 'erro');
         return;
     }
 
     try {
-        await criarAluno(nome, ra, curso);
+        if (modo === 'criar') {
+            await requisicao('/alunos', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    nome,
+                    ra,
+                    cursoId
+                })
+            });
 
-        formAluno.reset();
-
-        mostrarStatus(`Aluno ${nome} cadastrado com sucesso!`, 'ok');
-
-        await listarAlunos();
-    } catch (erro) {
-        mostrarStatus(erro.message, 'erro');
-        mostrarLog('Erro no POST /alunos', erro.message);
-    }
-});
-
-
-document.getElementById('btn-buscar').addEventListener(
-    'click',
-    async () => {
-        const ra = raBuscaEl.value.trim();
-
-        if (!ra) {
-            mostrarStatus('Digite um RA para buscar.', 'erro');
-            return;
-        }
-
-        try {
-            const aluno = await buscarPorRa(ra);
-
-            formCurso.hidden = false;
-            raEditandoEl.textContent = aluno.ra;
-            cursoNovoEl.value = aluno.curso || '';
-
-            mostrarStatus(`Aluno encontrado: ${aluno.nome}`, 'ok');
-        } catch (erro) {
-            formCurso.hidden = true;
-            mostrarStatus(erro.message, 'erro');
-            mostrarLog(`Erro no GET /alunos/${ra}`, erro.message);
-        }
-    }
-);
-
-
-formCurso.addEventListener('submit', async (evento) => {
-    evento.preventDefault();
-
-    const ra = raEditandoEl.textContent.trim();
-    const curso = cursoNovoEl.value.trim();
-
-    if (!ra || !curso) {
-        mostrarStatus('Informe o RA e o novo curso.', 'erro');
-        return;
-    }
-
-    try {
-        await atualizarCurso(ra, curso);
-
-        mostrarStatus(`Curso do RA ${ra} atualizado com sucesso!`, 'ok');
-
-        await listarAlunos();
-    } catch (erro) {
-        mostrarStatus(erro.message, 'erro');
-        mostrarLog(`Erro no PUT /alunos/${ra}`, erro.message);
-    }
-});
-
-
-listaEl.addEventListener('click', async (evento) => {
-    const botao = evento.target.closest('button[data-acao]');
-
-    if (!botao) return;
-
-    const ra = botao.dataset.ra;
-    const acao = botao.dataset.acao;
-
-    try {
-        if (acao === 'editar') {
-            formCurso.hidden = false;
-            raEditandoEl.textContent = ra;
-            cursoNovoEl.value = botao.dataset.curso || '';
-            raBuscaEl.value = ra;
-
-            cursoNovoEl.focus();
-
-            mostrarStatus(`Editando curso do RA ${ra}.`, 'ok');
-            return;
-        }
-
-        if (acao === 'excluir') {
-            const confirmar = confirm(
-                `Deseja realmente excluir o aluno de RA ${ra}?`
+            mostrarMsg(`Aluno "${nome}" cadastrado com sucesso!`, 'ok');
+        } else {
+            await requisicao(
+                `/alunos/${encodeURIComponent(raEditando)}`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        nome,
+                        cursoId
+                    })
+                }
             );
 
-            if (!confirmar) return;
+            mostrarMsg(`Aluno "${nome}" atualizado com sucesso!`, 'ok');
+        }
 
-            await excluirAluno(ra);
+        fecharModal();
+        await atualizarTudo();
+    } catch (erro) {
+        mostrarMsg(erro.message, 'erro');
+    }
+}
 
-            mostrarStatus(`Aluno de RA ${ra} excluído.`, 'ok');
+async function listarAlunos(acrescentar = false) {
+    if (alunosCarregando) return;
 
-            await listarAlunos();
+    if (!acrescentar) {
+        alunosInicio = 0;
+        alunosTotal = 0;
+        alunosTemMais = true;
+        alunosPedido++;
+    }
+
+    if (!alunosTemMais) return;
+
+    const pedido = alunosPedido;
+    alunosCarregando = true;
+
+    try {
+        const cursoId = filtroCurso.value;
+
+        const base = cursoId
+            ? `/cursos/${encodeURIComponent(cursoId)}/alunos`
+            : '/alunos';
+
+        const url = `${base}?inicio=${alunosInicio}&limite=${ALUNOS_POR_PAGINA}`;
+
+        const dados = await requisicao(url);
+
+        if (pedido !== alunosPedido) return;
+
+        const alunos = Array.isArray(dados)
+            ? dados
+            : dados.alunos || [];
+
+        alunosTotal = Array.isArray(dados)
+            ? dados.length
+            : dados.total ?? 0;
+
+        montarTabelaAlunos(alunos, acrescentar);
+
+        alunosInicio += alunos.length;
+        alunosTemMais = alunosInicio < alunosTotal;
+
+        if (alunos.length === 0) {
+            alunosTemMais = false;
         }
     } catch (erro) {
-        mostrarStatus(erro.message, 'erro');
-        mostrarLog('Erro na ação da lista', erro.message);
+        if (pedido === alunosPedido) {
+            mostrarMsg(erro.message, 'erro');
+
+            if (!acrescentar) {
+                tabela.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="vazio">
+                            Não foi possível carregar os alunos.
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+    } finally {
+        alunosCarregando = false;
     }
+}
+
+function montarTabelaAlunos(alunos, acrescentar = false) {
+    if (!acrescentar) {
+        tabela.innerHTML = '';
+    }
+
+    if (!alunos.length && !acrescentar) {
+        tabela.innerHTML = `
+            <tr>
+                <td colspan="4" class="vazio">
+                    Nenhum aluno encontrado.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    for (const aluno of alunos) {
+        const tr = document.createElement('tr');
+
+        const tdNome = document.createElement('td');
+        tdNome.textContent = aluno.nome;
+
+        const tdRa = document.createElement('td');
+        tdRa.textContent = aluno.ra;
+
+        const tdCurso = document.createElement('td');
+        tdCurso.textContent = aluno.curso?.nome || '—';
+
+        const tdAcoes = document.createElement('td');
+
+        const btnEditar = document.createElement('button');
+        btnEditar.textContent = 'Editar';
+        btnEditar.className = 'btn btn-secundario btn-pequeno';
+        btnEditar.onclick = () => abrirModalEditar(aluno);
+
+        const btnExcluir = document.createElement('button');
+        btnExcluir.textContent = 'Excluir';
+        btnExcluir.className = 'btn btn-perigo btn-pequeno';
+        btnExcluir.onclick = () => excluirAluno(aluno.ra, aluno.nome);
+
+        tdAcoes.append(btnEditar, btnExcluir);
+        tr.append(tdNome, tdRa, tdCurso, tdAcoes);
+
+        tabela.appendChild(tr);
+    }
+}
+
+async function excluirAluno(ra, nome) {
+    if (!confirm(`Deseja excluir o aluno "${nome}"?`)) {
+        return;
+    }
+
+    try {
+        await requisicao(`/alunos/${encodeURIComponent(ra)}`, {
+            method: 'DELETE'
+        });
+
+        mostrarMsg('Aluno excluído com sucesso!', 'ok');
+
+        await atualizarTudo();
+    } catch (erro) {
+        mostrarMsg(erro.message, 'erro');
+    }
+}
+
+async function atualizarTudo() {
+    await listarCursos();
+    await listarAlunos();
+}
+
+function pedirMaisSeVisivel() {
+    if (!sentinelaAlunos || !alunosTemMais || alunosCarregando) {
+        return;
+    }
+
+    const topo = sentinelaAlunos.getBoundingClientRect().top;
+
+    if (topo <= window.innerHeight + 160) {
+        listarAlunos(true);
+    }
+}
+
+document.getElementById('btn-novo')?.addEventListener('click', abrirModalCriar);
+document.getElementById('btn-novo-aluno')?.addEventListener('click', abrirModalCriar);
+
+document.getElementById('btn-atualizar')?.addEventListener('click', atualizarTudo);
+document.getElementById('btn-cancelar')?.addEventListener('click', fecharModal);
+document.getElementById('modal-fundo')?.addEventListener('click', fecharModal);
+
+document.querySelectorAll('[data-fechar-modal]').forEach(botao => {
+    botao.addEventListener('click', fecharModal);
 });
 
+form.addEventListener('submit', salvarAluno);
+formCurso.addEventListener('submit', adicionarCurso);
 
-listarAlunos().catch((erro) => {
-    mostrarStatus(
-        'Não foi possível conectar à API. Verifique se o servidor está rodando (npm start).',
-        'erro'
-    );
+filtroCurso.addEventListener('change', () => listarAlunos());
 
-    mostrarLog('Falha ao conectar', erro.message);
+window.addEventListener('scroll', pedirMaisSeVisivel);
+window.addEventListener('resize', pedirMaisSeVisivel);
+
+atualizarTudo().catch(erro => {
+    mostrarMsg(`Erro ao carregar o sistema: ${erro.message}`, 'erro');
 });

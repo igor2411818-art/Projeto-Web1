@@ -1,42 +1,215 @@
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
+
 <head>
-     <link rel="stylesheet" type="text/css" href="style.css">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tabela</title>
-</head>
-<body>
-   <article class ="card-aluno">
-    <h3>$`{escaparHtml(aluno.nome)}</h3>
-    <p class ="meta">
-        RA ${escaparHtml(aluno.ra)}
-        . ${escaparHtml(aluno.curso || 'Sem curso')}
-        . id ${aluno.id}
-    </p>
-    <button data-acao="editor"
-            data-ra="${escaparAtributo(aluno.ra)}"
-            data-curso="${escaparAtributo(aluno.curso || '')}">
-            Editar curso
-        </button>
-        <button data-acao="excluir"
-                data-ra="${escaparAtributo(aluno.ra)}">
-                Excluir
-            </button>
-   </article>
- <form id="form-aluno">
-    <label>Nome *
-        <input id="nome" type="text" required />
-    </label>
-    <label>RA *
-        <input id="ra" type="text" required />
-    </label>
-    <label>Curso
-        <input id="curso" type="text" />
-    </label>
-    <button type="submit">Salvar (POST)</button>
- </form>
 
- <script src="app.js"></script>
+    <title>Cadastro de Alunos</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="app">
+
+        <!-- CABEÇALHO -->
+        <header class="topo">
+            <div>
+                <h1>Cadastro de Alunos</h1>
+                <p class="subtitulo">
+                    Cursos e alunos: um curso tem vários alunos (1:N)
+                </p>
+            </div>
+
+            <button
+                type="button"
+                id="btn-novo"
+                class="btn btn-primario">
+                + Novo aluno
+            </button>
+        </header>
+
+        <!-- MENSAGENS -->
+        <div id="msg" class="msg" hidden></div>
+
+        <!-- PAINEL DE CURSOS -->
+        <section class="painel">
+
+            <div class="painel-cabecalho">
+                <h2>Cursos</h2>
+
+                <form id="form-curso" class="form-linha">
+
+                    <input
+                        id="novo-curso"
+                        type="text"
+                        placeholder="Nome do novo curso"
+                        required
+                    >
+
+                    <button type="submit" class="btn btn-primario">
+                        Adicionar curso
+                    </button>
+
+                </form>
+            </div>
+
+            <div class="tabela-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Curso</th>
+                            <th>Alunos</th>
+                            <th class="acoes">Ações</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="tabela-cursos">
+                        <tr>
+                            <td colspan="3" class="vazio">
+                                Carregando cursos...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </section>
+
+        <!-- PAINEL DE ALUNOS -->
+        <section class="painel">
+
+            <div class="painel-cabecalho">
+                <h2>Alunos cadastrados</h2>
+
+                <div class="filtros">
+
+                    <select id="filtro-curso">
+                        <option value="">Todos os cursos</option>
+                    </select>
+
+                    <button
+                        type="button"
+                        id="btn-atualizar"
+                        class="btn btn-secundario">
+                        Atualizar lista
+                    </button>
+
+                </div>
+            </div>
+
+            <div class="tabela-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>RA</th>
+                            <th>Curso</th>
+                            <th class="acoes">Ações</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="tabela-alunos">
+                        <tr>
+                            <td colspan="4" class="vazio">
+                                Carregando alunos...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </section>
+
+    </div>
+
+    <!-- MODAL DE CADASTRO E EDIÇÃO -->
+    <div id="modal" class="modal" hidden>
+
+        <div
+            class="modal-fundo"
+            id="modal-fundo">
+        </div>
+
+        <div
+            class="modal-caixa"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-titulo">
+
+            <div class="modal-cabecalho">
+                <h2 id="modal-titulo">Novo aluno</h2>
+
+                <button
+                    type="button"
+                    class="btn-fechar"
+                    data-fechar-modal
+                    aria-label="Fechar modal">
+                    &times;
+                </button>
+            </div>
+
+            <form id="form-aluno">
+
+                <label for="nome">
+                    Nome
+
+                    <input
+                        id="nome"
+                        type="text"
+                        placeholder="Digite o nome do aluno"
+                        required
+                        autocomplete="off">
+                </label>
+
+                <label for="ra">
+                    RA
+
+                    <input
+                        id="ra"
+                        type="text"
+                        placeholder="Digite o RA do aluno"
+                        required
+                        autocomplete="off">
+                </label>
+
+                <label for="curso">
+                    Curso
+
+                    <select id="curso" required>
+                        <option value="">Selecione um curso</option>
+                    </select>
+                </label>
+
+                <div class="modal-acoes">
+
+                    <button
+                        type="button"
+                        id="btn-cancelar"
+                        class="btn btn-secundario"
+                        data-fechar-modal>
+                        Cancelar
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="btn btn-primario">
+                        Salvar
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+    <!-- JAVASCRIPT -->
+    <script src="app.js"></script>
+
 </body>
 </html>
