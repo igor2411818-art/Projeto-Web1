@@ -1,8 +1,4 @@
 
-/* =====================================
-   VARIÁVEIS
-===================================== */
-
 :root {
     --bg: #f0f3f6;
     --surface: #ffffff;
@@ -22,22 +18,19 @@
     --shadow: 0 8px 24px -18px rgba(26, 35, 50, 0.45);
 }
 
-/* =====================================
-   CONFIGURAÇÕES GERAIS
-===================================== */
-
 * {
     box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
 }
 
 body {
     margin: 0;
     min-height: 100vh;
-
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-
     color: var(--ink);
-
     background: linear-gradient(
         180deg,
         #e7eef4 0%,
@@ -55,62 +48,37 @@ button {
     cursor: pointer;
 }
 
-/* =====================================
-   CONTAINER PRINCIPAL
-===================================== */
-
 .app {
     width: min(1000px, calc(100% - 2rem));
-
     margin: 0 auto;
-
     padding: 2rem 0 3rem;
 }
 
-/* =====================================
-   CABEÇALHO
-===================================== */
-
 .topo {
     display: flex;
-
     justify-content: space-between;
     align-items: center;
-
     gap: 1rem;
-
     margin-bottom: 1.5rem;
 }
 
 .topo h1 {
     margin: 0;
-
     font-size: 1.9rem;
-
     color: var(--ink);
 }
 
 .subtitulo {
     margin: 0.5rem 0 0;
-
     color: var(--muted);
-
     font-size: 0.95rem;
 }
 
-/* =====================================
-   PAINÉIS
-===================================== */
-
 .painel {
     background: var(--surface);
-
     border: 1px solid var(--line);
-
     border-radius: 12px;
-
     overflow: hidden;
-
     box-shadow: var(--shadow);
 }
 
@@ -120,62 +88,51 @@ button {
 
 .painel-cabecalho {
     display: flex;
-
     justify-content: space-between;
     align-items: center;
-
     flex-wrap: wrap;
-
     gap: 1rem;
-
     padding: 1.2rem 1.15rem;
-
     border-bottom: 1px solid var(--line);
 }
 
 .painel-cabecalho h2 {
     margin: 0;
-
     font-size: 1.15rem;
 }
 
-/* =====================================
-   BOTÕES
-===================================== */
-
 .btn {
     border: 1px solid var(--line);
-
     border-radius: 8px;
-
     padding: 0.65rem 0.9rem;
-
     font-size: 0.9rem;
+    transition: background 0.2s, border-color 0.2s, transform 0.2s;
+}
 
-    transition: 0.2s;
+.btn:active {
+    transform: scale(0.98);
 }
 
 .btn:focus-visible,
-.btn-fechar:focus-visible {
+.btn-fechar:focus-visible,
+.nuvem-filtro-limpar:focus-visible {
     outline: 3px solid rgba(15, 110, 86, 0.25);
     outline-offset: 2px;
 }
 
 .btn-primario {
     background: var(--primary);
-
     color: #fff;
-
     border-color: var(--primary);
 }
 
 .btn-primario:hover {
     background: var(--primary-hover);
+    border-color: var(--primary-hover);
 }
 
 .btn-secundario {
     background: #fff;
-
     color: var(--ink);
 }
 
@@ -185,25 +142,19 @@ button {
 
 .btn-perigo {
     background: var(--danger);
-
     color: #fff;
-
     border-color: var(--danger);
 }
 
 .btn-perigo:hover {
     background: var(--danger-hover);
+    border-color: var(--danger-hover);
 }
 
 .btn-pequeno {
     padding: 0.4rem 0.65rem;
-
     font-size: 0.82rem;
 }
-
-/* =====================================
-   AÇÕES DAS TABELAS
-===================================== */
 
 .acoes {
     text-align: center;
@@ -213,38 +164,27 @@ td .btn + .btn {
     margin-left: 0.35rem;
 }
 
-/* =====================================
-   TABELAS
-===================================== */
-
 .tabela-container {
     width: 100%;
-
     overflow-x: auto;
 }
 
 table {
     width: 100%;
-
     border-collapse: collapse;
 }
 
 th,
 td {
     padding: 0.9rem 1.15rem;
-
     border-bottom: 1px solid var(--line);
-
     text-align: left;
 }
 
 th {
     background: #f8fafc;
-
     color: var(--muted);
-
     font-size: 0.85rem;
-
     font-weight: 600;
 }
 
@@ -262,22 +202,14 @@ tbody tr:last-child td {
 
 .vazio {
     text-align: center;
-
     color: var(--muted);
-
     padding: 1.5rem;
 }
-
-/* =====================================
-   FORMULÁRIOS
-===================================== */
 
 .form-linha,
 .filtros {
     display: flex;
-
     align-items: center;
-
     gap: 0.5rem;
 }
 
@@ -287,24 +219,17 @@ tbody tr:last-child td {
 
 .filtros select {
     width: auto;
-
     min-width: 180px;
 }
 
 input,
 select {
     width: 100%;
-
     border: 1px solid var(--line);
-
     border-radius: 8px;
-
     padding: 0.7rem 0.8rem;
-
     background: #fff;
-
     color: var(--ink);
-
     font-size: 0.92rem;
 }
 
@@ -315,58 +240,122 @@ input::placeholder {
 input:focus,
 select:focus {
     outline: none;
-
     border-color: var(--primary);
-
     box-shadow: 0 0 0 3px rgba(15, 110, 86, 0.12);
 }
 
-/* =====================================
-   MENSAGENS
-===================================== */
-
 .msg {
     padding: 0.9rem 1rem;
-
     margin-bottom: 1.2rem;
-
     border-radius: 8px;
-
     font-size: 0.92rem;
 }
 
 .msg.ok {
     background: var(--ok-soft);
-
     color: #067647;
 }
 
 .msg.erro {
     background: var(--danger-soft);
-
     color: var(--danger);
 }
 
-.msg[hidden] {
+.msg[hidden],
+.criterio-pesquisa[hidden] {
     display: none !important;
 }
 
-/* =====================================
-   MODAL
-===================================== */
+.busca-linha {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 1rem 1.15rem;
+    border-bottom: 1px solid var(--line);
+}
+
+.busca-linha input {
+    flex: 1;
+    min-width: 0;
+}
+
+.busca-linha button {
+    flex-shrink: 0;
+}
+
+.criterio-pesquisa {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    padding: 0.8rem 1.15rem;
+    border-bottom: 1px solid var(--line);
+    font-size: 0.85rem;
+}
+
+.criterio-rotulo {
+    color: var(--muted);
+}
+
+.nuvem-filtro {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.4rem 0.35rem 0.85rem;
+    border-radius: 999px;
+    background: #e7f6ee;
+    color: var(--primary);
+    font-size: 0.85rem;
+    max-width: 100%;
+}
+
+.nuvem-filtro-texto {
+    overflow-wrap: anywhere;
+}
+
+.nuvem-filtro-limpar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 1.45rem;
+    height: 1.45rem;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: rgba(15, 110, 86, 0.12);
+    color: var(--primary);
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.nuvem-filtro-limpar:hover {
+    background: rgba(15, 110, 86, 0.25);
+}
+
+.rolagem-status {
+    margin: 0;
+    padding: 0.75rem 1.15rem 0.9rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+    border-top: 1px solid var(--line);
+    background: #fafcfd;
+}
+
+#sentinela-alunos {
+    width: 100%;
+    height: 2px;
+}
 
 .modal {
     position: fixed;
-
     inset: 0;
-
     z-index: 1000;
-
     display: flex;
-
     justify-content: center;
     align-items: center;
-
     padding: 1rem;
 }
 
@@ -374,115 +363,78 @@ select:focus {
     display: none !important;
 }
 
-/* Fundo escuro */
-
 .modal-fundo {
     position: absolute;
-
     inset: 0;
-
     background: rgba(15, 23, 42, 0.55);
-
     backdrop-filter: blur(3px);
 }
 
-/* Caixa do modal */
-
 .modal-caixa {
     position: relative;
-
     z-index: 1;
-
     width: min(100%, 450px);
-
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
     padding: 1.5rem;
-
     background: var(--surface);
-
     border-radius: 14px;
-
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
-
     animation: aparecer 0.2s ease;
 }
 
-/* Cabeçalho do modal */
-
 .modal-cabecalho {
     display: flex;
-
     justify-content: space-between;
     align-items: center;
-
     margin-bottom: 1.4rem;
 }
 
 .modal-cabecalho h2 {
     margin: 0;
-
     font-size: 1.3rem;
 }
 
-/* Botão fechar */
-
 .btn-fechar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 34px;
     height: 34px;
-
+    padding: 0;
     border: none;
-
     border-radius: 8px;
-
     background: #f0f3f6;
-
     color: var(--muted);
-
     font-size: 1.5rem;
-
     line-height: 1;
 }
 
 .btn-fechar:hover {
     background: #e2e8f0;
-
     color: var(--ink);
 }
 
-/* Campos do modal */
-
 .modal-caixa form {
     display: flex;
-
     flex-direction: column;
-
     gap: 1rem;
 }
 
 .modal-caixa label {
     display: flex;
-
     flex-direction: column;
-
     gap: 0.45rem;
-
     font-size: 0.9rem;
-
     font-weight: 600;
 }
 
-/* Ações do modal */
-
 .modal-acoes {
     display: flex;
-
     justify-content: flex-end;
-
     gap: 0.6rem;
-
     margin-top: 0.5rem;
 }
-
-/* Animação */
 
 @keyframes aparecer {
     from {
@@ -496,21 +448,14 @@ select:focus {
     }
 }
 
-/* =====================================
-   RESPONSIVIDADE
-===================================== */
-
 @media (max-width: 700px) {
-
     .app {
         width: calc(100% - 1rem);
-
         padding-top: 1.2rem;
     }
 
     .topo {
         flex-direction: column;
-
         align-items: stretch;
     }
 
@@ -524,14 +469,12 @@ select:focus {
 
     .painel-cabecalho {
         flex-direction: column;
-
         align-items: stretch;
     }
 
     .form-linha,
     .filtros {
         flex-direction: column;
-
         align-items: stretch;
     }
 
@@ -545,6 +488,15 @@ select:focus {
         width: 100%;
     }
 
+    .busca-linha {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .busca-linha button {
+        width: 100%;
+    }
+
     table {
         min-width: 550px;
     }
@@ -555,12 +507,16 @@ select:focus {
 }
 
 @media (max-width: 380px) {
-
     .modal-acoes {
         flex-direction: column-reverse;
     }
 
     .modal-acoes .btn {
         width: 100%;
+    }
+
+    .criterio-pesquisa {
+        align-items: flex-start;
+        flex-direction: column;
     }
 }

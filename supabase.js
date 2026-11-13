@@ -23,24 +23,39 @@ const COLUNAS_ALUNO =
 async function inserirAluno(nome, ra, cursoId) {
     const { data, error } = await supabase
         .from('alunos')
-        .insert([{ nome, ra, curso_id: cursoId }])
+        .insert({
+            nome,
+            ra,
+            curso_id: cursoId
+        })
         .select(COLUNAS_ALUNO)
         .single();
 
     if (error) throw error;
+
     return data;
 }
 
-async function listarAlunos(opcoes = {}) {
-    const { inicio = 0, limite } = opcoes;
-
+async function listarAlunosPaginado(
+    cursoId = null,
+    inicio = 0,
+    limite = null
+) {
     let consulta = supabase
         .from('alunos')
         .select(
             COLUNAS_ALUNO,
             limite ? { count: 'exact' } : undefined
-        )
-        .order('id', { ascending: true });
+        );
+
+    if (cursoId) {
+        consulta = consulta.eq('curso_id', cursoId);
+    }
+
+    consulta = consulta.order(
+        cursoId ? 'nome' : 'id',
+        { ascending: true }
+    );
 
     if (limite) {
         consulta = consulta.range(
@@ -53,7 +68,9 @@ async function listarAlunos(opcoes = {}) {
 
     if (error) throw error;
 
-    if (!limite) return data || [];
+    if (!limite) {
+        return data || [];
+    }
 
     return {
         alunos: data || [],
@@ -61,18 +78,33 @@ async function listarAlunos(opcoes = {}) {
     };
 }
 
-async function listarAlunosDoCurso(cursoId) {
-    const { data, error } = await supabase
-        .from('alunos')
-        .select(COLUNAS_ALUNO)
-        .eq('curso_id', cursoId)
-        .order('nome', { ascending: true });
+async function listarAlunos(opcoes = {}) {
+    const {
+        inicio = 0,
+        limite = null
+    } = opcoes;
 
-    if (error) throw error;
-    return data;
+    return listarAlunosPaginado(
+        null,
+        inicio,
+        limite
+    );
 }
 
-async function buscarporRa(ra) {
+async function listarAlunosDoCurso(cursoId, opcoes = {}) {
+    const {
+        inicio = 0,
+        limite = null
+    } = opcoes;
+
+    return listarAlunosPaginado(
+        cursoId,
+        inicio,
+        limite
+    );
+}
+
+async function buscarPorRa(ra) {
     const { data, error } = await supabase
         .from('alunos')
         .select(COLUNAS_ALUNO)
@@ -80,6 +112,7 @@ async function buscarporRa(ra) {
         .maybeSingle();
 
     if (error) throw error;
+
     return data;
 }
 
@@ -91,7 +124,8 @@ async function buscarPorNome(parteNome) {
         .order('id', { ascending: true });
 
     if (error) throw error;
-    return data;
+
+    return data || [];
 }
 
 async function atualizarAluno(ra, nome, cursoId) {
@@ -106,7 +140,9 @@ async function atualizarAluno(ra, nome, cursoId) {
     }
 
     if (!Object.keys(campos).length) {
-        throw new Error('Informe nome e/ou curso para atualizar.');
+        throw new Error(
+            'Informe nome e/ou curso para atualizar.'
+        );
     }
 
     const { data, error } = await supabase
@@ -116,6 +152,7 @@ async function atualizarAluno(ra, nome, cursoId) {
         .select(COLUNAS_ALUNO);
 
     if (error) throw error;
+
     return data;
 }
 
@@ -127,17 +164,19 @@ async function excluirPorRa(ra) {
         .select();
 
     if (error) throw error;
+
     return data;
 }
 
 async function inserirCurso(nome) {
     const { data, error } = await supabase
         .from('cursos')
-        .insert([{ nome }])
+        .insert({ nome })
         .select()
         .single();
 
     if (error) throw error;
+
     return data;
 }
 
@@ -149,10 +188,10 @@ async function listarCurso() {
 
     if (error) throw error;
 
-    return data.map((curso) => ({
+    return (data || []).map(curso => ({
         id: curso.id,
         nome: curso.nome,
-        total_alunos: curso.alunos[0]?.count ?? 0
+        total_alunos: curso.alunos?.[0]?.count ?? 0
     }));
 }
 
@@ -164,40 +203,21 @@ async function excluirCurso(id) {
         .select();
 
     if (error) throw error;
+
     return data;
 }
-
-console.log('--- CONFIGURAÇÃO SUPABASE ---');
-
-console.log('URL:', SUPABASE_URL);
-
-console.log(
-    'Chave carregada:',
-    Boolean(SUPABASE_ANON_KEY)
-);
-
-console.log(
-    'Prefixo:',
-    SUPABASE_ANON_KEY?.substring(0, 15)
-);
-
-console.log(
-    'Tamanho da chave:',
-    SUPABASE_ANON_KEY?.length
-);
-
-console.log('-----------------------------');
 
 module.exports = {
     supabase,
     inserirAluno,
     listarAlunos,
-    buscarporRa,
+    listarAlunosDoCurso,
+    listarAlunosPaginado,
+    buscarPorRa,
     buscarPorNome,
     atualizarAluno,
     excluirPorRa,
     inserirCurso,
     listarCurso,
-    excluirCurso,
-    listarAlunosDoCurso
+    excluirCurso
 };

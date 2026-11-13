@@ -1,13 +1,14 @@
+
 require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
-const pathModule = require('node:path');
+const path = require('node:path');
 
 const {
     inserirAluno,
     listarAlunos,
-    buscarporRa,
+    buscarPorRa,
     atualizarAluno,
     excluirPorRa,
     inserirCurso,
@@ -18,12 +19,12 @@ const {
 
 const app = express();
 
+const PORT = process.env.PORT || 3000;
 const ERRO_CHAVE_ESTRANGEIRA = '23503';
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(pathModule.join(__dirname, 'frontend')));
-
+app.use(express.static(path.join(__dirname, 'frontend')));
 
 function lerPagina(query) {
     if (
@@ -34,6 +35,7 @@ function lerPagina(query) {
     }
 
     const limite = Number(query.limite);
+
     const inicio = query.inicio === undefined
         ? 0
         : Number(query.inicio);
@@ -43,14 +45,50 @@ function lerPagina(query) {
         limite < 1 ||
         limite > 100
     ) {
-        return { erro: 'Informe limite entre 1 e 100' };
+        return {
+            erro: 'Informe um limite entre 1 e 100.'
+        };
     }
 
-    if (!Number.isInteger(inicio) || inicio < 0) {
-        return { erro: 'Inicio inválido' };
+    if (
+        !Number.isInteger(inicio) ||
+        inicio < 0
+    ) {
+        return {
+            erro: 'Início inválido.'
+        };
     }
 
-    return { inicio, limite };
+    return {
+        inicio,
+        limite
+    };
+}
+
+function responderErro(res, erro, status = 500) {
+    res.status(status).json({
+        erro: erro.message || 'Erro interno do servidor.'
+    });
+}
+
+function obterCursoId(body) {
+    return body.curso_id ?? body.cursoId;
+}
+
+function validarCursoId(cursoId) {
+    const id = Number(cursoId);
+
+    if (
+        cursoId === undefined ||
+        cursoId === null ||
+        cursoId === '' ||
+        !Number.isInteger(id) ||
+        id <= 0
+    ) {
+        return null;
+    }
+
+    return id;
 }
 
 app.get('/alunos', async (req, res) => {
@@ -58,117 +96,170 @@ app.get('/alunos', async (req, res) => {
         const pagina = lerPagina(req.query);
 
         if (pagina?.erro) {
-            return res.status(400).json({ erro: pagina.erro });
+            return res.status(400).json({
+                erro: pagina.erro
+            });
         }
 
         const dados = await listarAlunos(pagina || {});
 
-        res.json(
-            pagina
-                ? {
-                    ...dados,
-                    inicio: pagina.inicio,
-                    limite: pagina.limite
-                }
-                : dados
-        );
-    } catch (e) {
-        res.status(500).json({ erro: e.message });
+        if (!pagina) {
+            return res.json(dados);
+        }
+
+        return res.json({
+            ...dados,
+            inicio: pagina.inicio,
+            limite: pagina.limite
+        });
+    } catch (erro) {
+        return responderErro(res, erro);
     }
 });
 
 app.get('/alunos/:ra', async (req, res) => {
     try {
-        const aluno = await buscarporRa(req.params.ra);
+        const aluno = await buscarPorRa(req.params.ra);
 
         if (!aluno) {
             return res.status(404).json({
-                erro: 'Aluno não encontrado'
+                erro: 'Aluno não encontrado.'
             });
         }
 
-        res.json(aluno);
-    } catch (e) {
-        res.status(500).json({ erro: e.message });
+        return res.json(aluno);
+    } catch (erro) {
+        return responderErro(res, erro);
     }
 });
 
 app.post('/alunos', async (req, res) => {
     try {
         const { nome, ra } = req.body;
-        const curso_id = req.body.curso_id ?? req.body.cursoId;
+        const cursoId = obterCursoId(req.body);
+        const cursoIdValido = validarCursoId(cursoId);
 
-        if (!nome || !ra || !curso_id) {
+        if (
+            typeof nome !== 'string' ||
+            !nome.trim() ||
+            typeof ra !== 'string' ||
+            !ra.trim() ||
+            !cursoIdValido
+        ) {
             return res.status(400).json({
-                erro: 'Campos obrigatórios: nome, ra e curso_id'
+                erro: 'Informe nome, RA e um curso válido.'
             });
         }
 
         const aluno = await inserirAluno(
-            nome,
-            ra,
-            Number(curso_id)
+            nome.trim(),
+            ra.trim(),
+            cursoIdValido
         );
 
-        res.status(201).json(aluno);
-    } catch (e) {
-        if (e.code === ERRO_CHAVE_ESTRANGEIRA) {
+        return res.status(201).json(aluno);
+    } catch (erro) {
+        if (erro.code === ERRO_CHAVE_ESTRANGEIRA) {
             return res.status(400).json({
-                erro: 'O curso informado não existe'
+                erro: 'O curso informado não existe.'
             });
         }
 
-        res.status(400).json({ erro: e.message });
+        if (erro.code === '23505') {
+            return res.status(409).json({
+                erro: 'Já existe um aluno cadastrado com esse RA.'
+            });
+        }
+
+        return responderErro(res, erro, 400);
     }
 });
 
 app.put('/alunos/:ra', async (req, res) => {
     try {
         const { nome } = req.body;
-        const curso_id = req.body.curso_id ?? req.body.cursoId;
+        const cursoId = obterCursoId(req.body);
+
+        const cursoIdValido = cursoId === undefined
+            ? undefined
+            : validarCursoId(cursoId);
 
         if (
-            (nome === undefined || nome === '') &&
-            curso_id === undefined
+            nome === undefined &&
+            cursoId === undefined
         ) {
             return res.status(400).json({
-                erro: 'Informe nome e/ou curso_id para atualizar'
+                erro: 'Informe nome e/ou curso para atualizar.'
+            });
+        }
+
+        if (
+            nome !== undefined &&
+            (typeof nome !== 'string' || !nome.trim())
+        ) {
+            return res.status(400).json({
+                erro: 'Informe um nome válido.'
+            });
+        }
+
+        if (
+            cursoId !== undefined &&
+            !cursoIdValido
+        ) {
+            return res.status(400).json({
+                erro: 'Informe um curso válido.'
             });
         }
 
         const dados = await atualizarAluno(
             req.params.ra,
-            nome,
-            curso_id === undefined ? undefined : Number(curso_id)
+            nome === undefined ? undefined : nome.trim(),
+            cursoIdValido
         );
 
-        res.json(dados);
-    } catch (e) {
-        if (e.code === ERRO_CHAVE_ESTRANGEIRA) {
-            return res.status(400).json({
-                erro: 'O curso informado não existe'
+        if (!dados || dados.length === 0) {
+            return res.status(404).json({
+                erro: 'Aluno não encontrado.'
             });
         }
 
-        res.status(400).json({ erro: e.message });
+        return res.json(dados[0]);
+    } catch (erro) {
+        if (erro.code === ERRO_CHAVE_ESTRANGEIRA) {
+            return res.status(400).json({
+                erro: 'O curso informado não existe.'
+            });
+        }
+
+        return responderErro(res, erro, 400);
     }
 });
 
 app.delete('/alunos/:ra', async (req, res) => {
     try {
         const dados = await excluirPorRa(req.params.ra);
-        res.json(dados);
-    } catch (e) {
-        res.status(400).json({ erro: e.message });
+
+        if (!dados || dados.length === 0) {
+            return res.status(404).json({
+                erro: 'Aluno não encontrado.'
+            });
+        }
+
+        return res.json({
+            mensagem: 'Aluno excluído com sucesso.'
+        });
+    } catch (erro) {
+        return responderErro(res, erro, 400);
     }
 });
 
 app.get('/cursos', async (req, res) => {
     try {
         const cursos = await listarCurso();
-        res.json(cursos);
-    } catch (e) {
-        res.status(500).json({ erro: e.message });
+
+        return res.json(cursos);
+    } catch (erro) {
+        return responderErro(res, erro);
     }
 });
 
@@ -176,45 +267,97 @@ app.post('/cursos', async (req, res) => {
     try {
         const { nome } = req.body;
 
-        if (!nome || !nome.trim()) {
+        if (
+            typeof nome !== 'string' ||
+            !nome.trim()
+        ) {
             return res.status(400).json({
-                erro: 'Campo obrigatório: nome'
+                erro: 'Informe o nome do curso.'
             });
         }
 
         const curso = await inserirCurso(nome.trim());
 
-        res.status(201).json(curso);
-    } catch (e) {
-        res.status(400).json({ erro: e.message });
+        return res.status(201).json(curso);
+    } catch (erro) {
+        return responderErro(res, erro, 400);
     }
 });
 
 app.delete('/cursos/:id', async (req, res) => {
     try {
-        const dados = await excluirCurso(req.params.id);
-        res.json(dados);
-    } catch (e) {
-        if (e.code === ERRO_CHAVE_ESTRANGEIRA) {
-            return res.status(409).json({
-                erro: 'Não é possível excluir: este curso ainda tem alunos'
+        const id = validarCursoId(req.params.id);
+
+        if (!id) {
+            return res.status(400).json({
+                erro: 'ID do curso inválido.'
             });
         }
 
-        res.status(400).json({ erro: e.message });
+        const dados = await excluirCurso(id);
+
+        if (!dados || dados.length === 0) {
+            return res.status(404).json({
+                erro: 'Curso não encontrado.'
+            });
+        }
+
+        return res.json({
+            mensagem: 'Curso excluído com sucesso.'
+        });
+    } catch (erro) {
+        if (erro.code === ERRO_CHAVE_ESTRANGEIRA) {
+            return res.status(409).json({
+                erro: 'Não é possível excluir: este curso ainda tem alunos.'
+            });
+        }
+
+        return responderErro(res, erro, 400);
     }
 });
 
 app.get('/cursos/:id/alunos', async (req, res) => {
     try {
-        const alunos = await listarAlunosDoCurso(req.params.id);
-        res.json(alunos);
-    } catch (e) {
-        res.status(500).json({ erro: e.message });
+        const cursoId = validarCursoId(req.params.id);
+
+        if (!cursoId) {
+            return res.status(400).json({
+                erro: 'ID do curso inválido.'
+            });
+        }
+
+        const pagina = lerPagina(req.query);
+
+        if (pagina?.erro) {
+            return res.status(400).json({
+                erro: pagina.erro
+            });
+        }
+
+        const dados = await listarAlunosDoCurso(
+            cursoId,
+            pagina || {}
+        );
+
+        if (!pagina) {
+            return res.json(dados);
+        }
+
+        return res.json({
+            ...dados,
+            inicio: pagina.inicio,
+            limite: pagina.limite
+        });
+    } catch (erro) {
+        return responderErro(res, erro);
     }
 });
 
-const PORT = process.env.PORT || 3000;
+app.use((req, res) => {
+    res.status(404).json({
+        erro: 'Rota não encontrada.'
+    });
+});
 
 app.listen(PORT, () => {
     console.log(`API rodando em http://localhost:${PORT}`);
