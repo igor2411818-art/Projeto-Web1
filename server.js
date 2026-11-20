@@ -65,6 +65,44 @@ function lerPagina(query) {
     };
 }
 
+function lerBusca(query) {
+    if (typeof query.busca !== 'string') {
+        return '';
+    }
+
+    return query.busca.trim();
+}
+
+function lerOrdenacao(query) {
+    const permitidas = {
+        nome: 'nome',
+        ra: 'ra',
+        curso: 'curso'
+    };
+
+    const ordem = permitidas[query.ordem];
+
+    if (!ordem) {
+        return null;
+    }
+
+    const direcao = query.direcao === 'desc'
+        ? 'desc'
+        : 'asc';
+
+    return {
+        ordem,
+        direcao
+    };
+}
+
+function obterFiltros(query) {
+    return {
+        busca: lerBusca(query),
+        ordenacao: lerOrdenacao(query)
+    };
+}
+
 function responderErro(res, erro, status = 500) {
     res.status(status).json({
         erro: erro.message || 'Erro interno do servidor.'
@@ -101,7 +139,12 @@ app.get('/alunos', async (req, res) => {
             });
         }
 
-        const dados = await listarAlunos(pagina || {});
+        const filtros = obterFiltros(req.query);
+
+        const dados = await listarAlunos({
+            ...(pagina || {}),
+            ...filtros
+        });
 
         if (!pagina) {
             return res.json(dados);
@@ -334,9 +377,14 @@ app.get('/cursos/:id/alunos', async (req, res) => {
             });
         }
 
+        const filtros = obterFiltros(req.query);
+
         const dados = await listarAlunosDoCurso(
             cursoId,
-            pagina || {}
+            {
+                ...(pagina || {}),
+                ...filtros
+            }
         );
 
         if (!pagina) {

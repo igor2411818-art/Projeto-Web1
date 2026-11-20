@@ -39,25 +39,56 @@ async function inserirAluno(nome, ra, cursoId) {
 async function listarAlunosPaginado(
     cursoId = null,
     inicio = 0,
-    limite = null
+    limite = null,
+    busca = '',
+    ordenacao = null
 ) {
     let consulta = supabase
         .from('alunos')
         .select(
             COLUNAS_ALUNO,
-            limite ? { count: 'exact' } : undefined
+            { count: 'exact' }
         );
 
     if (cursoId) {
         consulta = consulta.eq('curso_id', cursoId);
     }
 
-    consulta = consulta.order(
-        cursoId ? 'nome' : 'id',
-        { ascending: true }
-    );
+    const termo = String(busca || '').trim();
 
-    if (limite) {
+    if (termo) {
+        const termoSeguro = termo.replace(/[,%_\\]/g, '');
+
+        if (termoSeguro) {
+            consulta = consulta.or(
+                `nome.ilike.%${termoSeguro}%,ra.ilike.%${termoSeguro}%`
+            );
+        }
+    }
+
+    const coluna = ordenacao?.ordem;
+    const ascendente = ordenacao?.direcao !== 'desc';
+
+    if (coluna === 'curso') {
+        consulta = consulta.order('nome', {
+            ascending: ascendente,
+            referencedTable: 'curso'
+        });
+    } else if (coluna === 'nome' || coluna === 'ra') {
+        consulta = consulta.order(coluna, {
+            ascending: ascendente
+        });
+    } else {
+        consulta = consulta.order('id', {
+            ascending: true
+        });
+    }
+
+    consulta = consulta.order('id', {
+        ascending: true
+    });
+
+    if (limite !== null) {
         consulta = consulta.range(
             inicio,
             inicio + limite - 1
@@ -68,7 +99,7 @@ async function listarAlunosPaginado(
 
     if (error) throw error;
 
-    if (!limite) {
+    if (limite === null) {
         return data || [];
     }
 
@@ -81,26 +112,34 @@ async function listarAlunosPaginado(
 async function listarAlunos(opcoes = {}) {
     const {
         inicio = 0,
-        limite = null
+        limite = null,
+        busca = '',
+        ordenacao = null
     } = opcoes;
 
     return listarAlunosPaginado(
         null,
         inicio,
-        limite
+        limite,
+        busca,
+        ordenacao
     );
 }
 
 async function listarAlunosDoCurso(cursoId, opcoes = {}) {
     const {
         inicio = 0,
-        limite = null
+        limite = null,
+        busca = '',
+        ordenacao = null
     } = opcoes;
 
     return listarAlunosPaginado(
         cursoId,
         inicio,
-        limite
+        limite,
+        busca,
+        ordenacao
     );
 }
 
